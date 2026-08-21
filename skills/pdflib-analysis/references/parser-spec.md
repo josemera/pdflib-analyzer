@@ -25,7 +25,7 @@ PHP-CS-Fixer are all built on it). Install into `analysis/`:
 analysis/scripts/run-php.sh --composer require nikic/php-parser
 ```
 
-This is `analysis/`'s own dependency and has nothing to do with the fifteen
+This is `analysis/`'s own dependency and has nothing to do with the analyzed
 repositories, which stay as fresh clones with no `vendor/` directory.
 
 ## Invocation contract

@@ -4,7 +4,7 @@
 #
 # The base repo builds a `cli-pdflib` target: PHP CLI with PDFlib and no web
 # server. That target runs `php -r` directly, so it is the natural probe target
-# and no donor repo is needed in the normal case.
+# and no runtime donor is needed in the normal case.
 #
 # Fallbacks exist because a local build may not be possible. Any image carrying
 # the same PDFlib build works — the reflected method list is a property of the
@@ -24,8 +24,8 @@
 #   0. PDFLIB_RUNTIME_IMAGE                 an explicit tag, if set
 #   1. a local image already carrying pdflib on the CLI SAPI
 #   2. docker build --target cli-pdflib     from the base repo
-#   3. docker compose run --rm --no-deps    in a donor repo
-#   4. docker build the donor's Dockerfile
+#   3. docker compose run --rm --no-deps    in a runtime donor
+#   4. docker build the runtime donor's Dockerfile
 #
 # Records the winning strategy in analysis/reference/runtime.txt so run-php.sh
 # --image can reuse it without rediscovering anything.
@@ -158,14 +158,14 @@ if [[ -n "$BASE_REPO" ]]; then
     fi
 fi
 
-# --- strategies 3 and 4 need a donor repo ---------------------------------
+# --- strategies 3 and 4 need a runtime donor ---------------------------------
 
 DONOR="${1:-}"
 SERVICE="${2:-}"
 if [[ -z "$DONOR" ]]; then
     cat >&2 <<'NODONOR'
 
-No runtime found automatically, and no donor repo was given.
+No runtime found automatically, and no runtime donor was given.
 
 Pass a repo that inherits a pdflib image. The best choice is
 pcw-ppe-signs-pdfgen — it is the only app on php-cli-pdflib, so the extension
@@ -178,12 +178,12 @@ may not have the extension enabled.
 NODONOR
     exit 1
 fi
-[[ -d "$PARENT_DIR/$DONOR" || -d "$DONOR" ]] || fail "donor repo not found: $DONOR"
+[[ -d "$PARENT_DIR/$DONOR" || -d "$DONOR" ]] || fail "runtime donor not found: $DONOR"
 
 DONOR_PATH="$(cd "${DONOR#$PARENT_DIR/}" 2>/dev/null && pwd || cd "$PARENT_DIR/$DONOR" && pwd)"
 DONOR_NAME="$(basename "$DONOR_PATH")"
 
-say "Donor repo: $DONOR_PATH"
+say "Runtime donor: $DONOR_PATH"
 
 # --- record what the donor inherits from ---------------------------------
 #
@@ -211,7 +211,7 @@ if [[ -f "$REF_DIR/base-image.txt" ]]; then
     fi
 fi
 
-# --- strategy 3: docker compose run in the donor repo ---------------------
+# --- strategy 3: docker compose run in the runtime donor ---------------------
 
 COMPOSE_FILE=""
 for f in docker-compose.yml docker-compose.yaml compose.yml compose.yaml; do

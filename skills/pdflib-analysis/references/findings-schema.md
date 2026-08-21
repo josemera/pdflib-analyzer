@@ -55,7 +55,7 @@ anyway so the corpus can *demonstrate* uniformity rather than assume it.
     "installs_extensions": false,
     "sets_searchpath": true,
     "license_key_source": "env PDFLIB_LICENSE",
-    "bootstrap_set_option_calls": ["app/Providers/PdfServiceProvider.php:31"]
+    "bootstrap_configuration_calls": ["app/Providers/PdfServiceProvider.php:31"]
   },
   "notes": "conf.d file raises memory_limit only; SearchPath set at runtime not build time",
   "could_not_determine": []
@@ -109,8 +109,8 @@ Parser output. The shape below is the target; bootstrap confirms it.
   ],
   "method_counts": { "load_font": 6, "fit_textline": 41, "set_option": 12 },
   "option_keys_seen": { "embedding": 6, "fontname": 3, "fillcolor": 18 },
-  "set_option_calls": [
-    { "file": "app/Providers/PdfServiceProvider.php", "line": 31, "option_string": "SearchPath={/usr/share/fonts}", "kind": "literal" }
+  "configuration_calls": [
+    { "file": "app/Providers/PdfServiceProvider.php", "line": 31, "call": "set_option", "option_string": "SearchPath={/usr/share/fonts}", "kind": "literal" }
   ],
   "needs_review": [
     { "file": "app/Reports/Legacy.php", "line": 88, "reason": "option string built by concatenation from config('pdf.fonts')" }
@@ -130,9 +130,14 @@ Field notes:
   routes most configuration through option-list strings rather than function
   parameters, so the union of option keys across all repos is a larger and more
   demanding surface than the union of method names.
-- **`set_option_calls`** are broken out because they configure global behaviour
-  rather than emitting content, and are easy to overlook while focusing on
-  drawing primitives.
+- **`configuration_calls`** collects both `set_option()` and `set_parameter()`,
+  distinguished by the `call` field. They are broken out from `call_sites`
+  because they configure global behaviour rather than emitting content, and are
+  easy to overlook while focusing on drawing primitives. Keep them
+  distinguishable rather than merged: `set_parameter` is the older API and a
+  repo still using it may be pinned to older idioms elsewhere too. These calls
+  also still appear in `call_sites` — this array is an index into them, not a
+  replacement.
 - **`api_style`** is `oo`, `procedural`, or `mixed`. If any repo is `mixed` or
   the corpus contains both, the replacement must provide both surfaces.
 - **`confidence`** lets the parser be honest instead of silent.

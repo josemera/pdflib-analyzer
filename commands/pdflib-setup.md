@@ -12,7 +12,7 @@ tier, and what its exact API surface is. All application repos share this base
 image, so version and tier are settled here once and are never per-repo
 questions afterwards.
 
-Optional donor repo for the runtime probe: `$1`. Usually unnecessary — the base
+Optional runtime donor for the runtime probe: `$1`. Usually unnecessary — the base
 repo's `cli-pdflib` target is the normal probe path. Only needed if that build
 cannot be made to work.
 
@@ -48,7 +48,7 @@ analysis/scripts/resolve-runtime.sh
 
 With no argument it tries `PDFLIB_RUNTIME_IMAGE`, then local images already
 carrying pdflib on the CLI SAPI, then `docker build --target cli-pdflib` from the
-base repo. Pass a donor repo only if all of those fail.
+base repo. Pass a runtime donor only if all of those fail.
 
 If the base repo builds its targets through a Makefile or build script rather
 than a plain multi-stage Dockerfile, read that build definition (step 3 should

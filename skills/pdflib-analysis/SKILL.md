@@ -11,6 +11,11 @@ The user maintains a set of PHP repositories that all depend on the commercial
 PDFlib extension, installed through a shared Docker base image. The goal is an
 open source replacement.
 
+The repository inventory — which repos exist and which base image variant each
+uses — lives in `references/environment.md` and nowhere else. Derive counts from
+that file rather than repeating a number in prose, so the estate can change
+without several files drifting silently.
+
 **The binding constraint on everything: the calling code must not change.** The
 replacement has to match PDFlib's API shape, argument conventions, option-list
 grammar, error semantics, and return values — not merely produce similar PDFs.
@@ -25,15 +30,15 @@ and treat `GLOSSARY.md` as a real deliverable rather than a byproduct.
 
 ## Non-negotiable design rules
 
-Read these before doing anything. They are what make fifteen separate runs
+Read these before doing anything. They are what make separate runs on different repos
 comparable to each other.
 
 **1. Extraction is deterministic, not conversational.** A committed PHP script
 using `nikic/php-parser` produces the call-site inventory. Never hand-extract
 call sites with grep and present them as findings. Grep has exactly one
 sanctioned role: an independent cross-check against the parser (see rule 3).
-The reason is that an LLM re-deriving the extraction fifteen times produces
-fifteen different completeness levels, and nobody can tell which ones are wrong.
+The reason is that an LLM re-deriving the extraction once per repo produces
+a different completeness level per repo, and nobody can tell which ones are wrong.
 
 **2. The reflected method list is the only authority on what PDFlib is.**
 `get_class_methods('PDFlib')` run inside the base image returns the exact API
@@ -52,7 +57,7 @@ Never edit that file to make a check pass.
   replacement in production. Investigate every one.
 
 **4. Findings must stand alone.** Synthesis runs over `findings/`, not over
-source. Fifteen PHP repositories will not fit in a context window. Capture
+source. The repositories will not fit in a context window. Capture
 surrounding code context with each call site and describe the wrapper boundary
 in prose, so a later session can reason about a repo without opening it.
 
@@ -121,6 +126,11 @@ pinned to the image.
 
 ### Finding a runtime
 
+**Runtime donor** — used throughout — means a repo whose already-built or
+buildable image carries the PDFlib extension, borrowed solely to run the
+reflection probe. It is not analyzed in that capacity, and it need not be the
+repo being bootstrapped.
+
 Read `references/environment.md` first — it records the base image targets and
 which app uses which.
 
@@ -135,7 +145,7 @@ repo is passed — compose or a direct build from that repo. It verifies
 `extension_loaded("pdflib")` before accepting anything, and records the winner in
 `analysis/reference/runtime.txt` for `run-php.sh --image` to reuse.
 
-**CLI-flavoured images first, deliberately.** Fourteen of the fifteen apps run
+**CLI-flavoured images first, deliberately.** All but one of the apps run
 Apache variants, which may enable the extension for FPM but not CLI. A probe
 against one of those can report the extension missing when it is installed and
 working — a false negative that looks identical to a real one. If a donor is
@@ -185,18 +195,24 @@ Read `references/parser-spec.md` before starting.
 
 ### Phase 2 — Per-repo analysis (repeated)
 
-`/pdflib-analyze <repo-dir>`. Run once per repository, manually, as each new
-repo is cloned into the parent directory.
+`/pdflib-analyze <repo-dir> [--force]`. Run once per repository, manually, as
+each new repo is cloned into the parent directory. Existing findings are never
+silently replaced: the command reports what is there and asks in chat, unless
+`--force` is passed.
 
 ### Phase 3 — Synthesis (repeated, not just at the end)
 
 `/pdflib-synthesize`. Runs over whatever findings exist and states its coverage.
 Run it early — after roughly the third and seventh repos — so a missing schema
-field is discovered when it costs three re-runs instead of fifteen.
+field is discovered when it costs three re-runs instead of one per completed
+repo.
 
 ### Maintenance
 
-`/pdflib-status` reports progress and staleness. `/pdflib-reextract <repo-dir>`
+`/pdflib-status` reports progress and staleness — run it at the start of every
+session, before analyzing the next repo. It is read-only and fast, and it is the
+only thing that surfaces stale parser versions and drifted repo HEADs before
+they affect a conclusion. `/pdflib-reextract <repo-dir>`
 re-runs a changed parser over an already-analyzed repo.
 
 ## Parser versioning and the fix loop

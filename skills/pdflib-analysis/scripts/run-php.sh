@@ -106,7 +106,7 @@ runtime_field() {
 # sound.
 #
 # The script is piped in on stdin rather than mounted, so this works regardless
-# of how the donor's volumes are arranged.
+# of how the runtime donor's volumes are arranged.
 docker_php() {
     local strategy; strategy="$(runtime_field strategy || true)"
 

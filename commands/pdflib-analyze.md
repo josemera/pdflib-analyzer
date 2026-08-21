@@ -1,6 +1,6 @@
 ---
 description: Analyze one repository's PDFlib usage and write its findings set
-argument-hint: "<repo-dir>"
+argument-hint: "<repo-dir> [--force]"
 ---
 
 Use the **pdflib-analysis** skill. Read its SKILL.md,
@@ -20,12 +20,25 @@ Stop and report if any of these fail:
   (`/pdflib-setup` has run)
 - `analysis/scripts/extract-pdflib-calls.php` exists
   (`/pdflib-bootstrap` has run)
-- `$1` exists under the parent directory, is a git repo, contains PHP, and has
-  a Dockerfile or compose file
+- `$1` exists under the parent directory, is a git repo, and contains at least
+  one `.php` file outside `vendor/`. A Dockerfile or compose file is expected
+  but not required — a repo without one is a finding, not a reason to stop.
+
+  **A repo with zero PDFlib call sites is a valid result, not a skip.** PDFlib
+  may have been removed, or reached only transitively through a shared package.
+  Run the full analysis, write findings with an empty `call_sites` array, and
+  say so explicitly in `notes.md` — including whether the repo still pins a
+  pdflib image despite not calling it, which is a migration data point in its
+  own right. Synthesis counts it in coverage. Never quietly omit a repo because
+  it looked empty; an omission is indistinguishable from a repo nobody got to.
 - `$1` is **not** `pcw-pce-php-pdflib` — that is the base image repo, handled by
   `/pdflib-setup`. It has no application call sites, and analyzing it as though
   it did would put a bogus entry in the corpus.
-- `analysis/findings/<repo>/` does not already exist — refuse to overwrite
+- `analysis/findings/<repo>/` does not already exist. If it does, stop and
+  report what is there (analysis date, call-site count, parser version), then
+  ask the user in chat whether to replace it. Proceed only on an explicit yes,
+  or if `$ARGUMENTS` contains `--force`. Do not infer consent from the user
+  having re-run the command. Refuse to overwrite
   without the user explicitly confirming. With repos cycling through the same
   parent directory, an accidental re-run on a half-analyzed repo is the easy
   mistake.
@@ -64,7 +77,8 @@ guarantees the same PDFlib binary, not the same PDFlib configuration. Check for:
 - its own Dockerfile stage installing or enabling anything
 - `SearchPath`, font directories, or encoding paths set by the repo
 - a different license key source
-- `set_option()` / `set_parameter()` calls at bootstrap or in a service provider
+- `set_option()` / `set_parameter()` calls at bootstrap or in a service
+  provider — recorded in `bootstrap_configuration_calls`
 
 Write `analysis/findings/<repo>/ingestion.json`.
 
@@ -116,8 +130,7 @@ open the repository:
   part of the API surface a replacement must match.
 - Anything surprising, especially anything contradicting an earlier repo
 - Whether any wrapper class resembles one seen in a previous repo — a shared or
-  copy-pasted wrapper is a much better shim insertion point than fifteen
-  separate ones
+  copy-pasted wrapper is a much better shim insertion point than one per repo
 
 Write `needs-review.md` with every unresolved item: file, line, the code, why
 it could not be resolved, what a human would need to check.
@@ -144,4 +157,4 @@ and open items in `needs-review.md`.
 
 If this is roughly the third or seventh repo, suggest running
 `/pdflib-synthesize` now. A missing schema field found at repo three costs three
-re-runs; found at repo fifteen it costs fifteen.
+re-runs; found at the last repo it costs one per completed repo.

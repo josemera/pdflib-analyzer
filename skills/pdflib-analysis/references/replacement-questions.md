@@ -14,7 +14,7 @@ every synthesis report: how many repos of how many, and which.
    usage require a higher tier than the corpus average? (Tier is settled in
    setup; this checks that usage matches.)
 2. What is the union of distinct methods called across all analyzed repos, and
-   how many? Fifteen methods is a very different project from two hundred.
+   how many? Fifteen is a very different project from two hundred.
 3. Which methods appear in only one repo? Those are candidates for rewriting a
    single call site rather than implementing the method.
 4. Which methods are called most? Those must be correct first.
@@ -29,7 +29,8 @@ every synthesis report: how many repos of how many, and which.
 8. How many option strings are built dynamically rather than written as
    literals, and where? Those cannot be enumerated statically and need manual
    review before any replacement is considered complete.
-9. Which `set_option` / `set_parameter` calls configure global behaviour, and
+9. Which `set_option` / `set_parameter` calls (both in `configuration_calls`,
+   tagged by `call`) configure global behaviour, and
    do repos configure it differently?
 
 ## Hard features
@@ -53,7 +54,7 @@ every synthesis report: how many repos of how many, and which.
     an API-perfect one.
 15. Do any wrapper classes appear in more than one repo — copy-pasted or via a
     shared internal package? A shared wrapper is a much better shim insertion
-    point than fifteen separate ones.
+    point than one per repo.
 16. Do all repos pin the same base image, and does any repo override PDFlib
     configuration locally?
 17. What else in the estate depends on the `pdflib` extension being loaded, and

@@ -8,8 +8,8 @@ starting.
 
 Runs over whatever findings exist. **Run it early** — after roughly the third
 and seventh repos, not only at the end. A missing schema field discovered at
-repo three costs three re-extractions; the same discovery at repo fifteen costs
-fifteen.
+repo three costs three re-extractions; the same discovery at the last repo
+costs one per completed repo.
 
 ## 0. Version gate
 
@@ -24,7 +24,7 @@ whole staleness mechanism — everything upstream is advisory.
 
 ## 1. Work from findings, not source
 
-Fifteen repositories of PHP will not fit in context. The findings are the
+The repositories' PHP will not fit in context. The findings are the
 compressed representation and are designed to stand alone.
 
 Dropping into `analyzed/<repo>/` for a *specific* question is legitimate and is
@@ -44,7 +44,7 @@ data" where that is the honest answer.
 
 **Lead with coverage**: how many repos of how many, named, and the parser
 version. Anyone reading this needs to know immediately whether it describes
-three repos or fifteen.
+three repos or the whole estate.
 
 Then:
 
@@ -62,7 +62,7 @@ Then:
   feature. Present it as a trade-off, not a recommendation.
 - **Wrapper boundaries** — which repos are concentrated and which are
   scattered; whether any wrapper is shared or copy-pasted across repos, since a
-  shared wrapper is a far better shim insertion point than fifteen separate
+  shared wrapper is a far better shim insertion point than one per repo
   ones.
 - **Ingestion** — the split across the three pdflib variants, any repo whose
   variant differs from expectation, every transitive inheritance chain, and

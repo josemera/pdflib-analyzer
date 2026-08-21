@@ -13,11 +13,12 @@ design decision here follows from that.
 
 ## What problem this solves
 
-Fifteen PHP repositories share a Docker base image that provides PDFlib. You
-want to know exactly what API surface a replacement would have to satisfy,
-without opening fifteen codebases at once (they will not fit in context) and
-without an LLM re-deriving the extraction fifteen times (which produces fifteen
-different completeness levels that nobody can tell apart).
+A set of PHP repositories share a Docker base image that provides PDFlib — see
+`references/environment.md` for the current inventory, which is the single place
+that count lives. You want to know exactly what API surface a replacement would
+have to satisfy, without opening every codebase at once (they will not fit in
+context) and without an LLM re-deriving the extraction once per repo (which
+produces one completeness level per repo, and no way to tell which are wrong).
 
 The approach: a deterministic parser does the extraction, an authoritative
 reflection of the installed extension defines what PDFlib even is, two
@@ -75,7 +76,8 @@ parent/                          <- open this in VS Code; Claude Code runs here
 ├── .claude/
 │   ├── commands/pdflib-*.md
 │   └── skills/pdflib-analysis/
-├── pcw-pce-php-pdflib/          <- permanent: the repo that builds the PDFlib base image
+├── pcw-pce-php-pdflib/          <- permanent: builds the PDFlib base image (note:
+│                                   pce, not ppe — the apps are all pcw-ppe-*)
 ├── <repo-under-analysis>/       <- the repo you are working on right now
 ├── analyzed/                    <- repos already done (kept, not deleted)
 └── analysis/                    <- permanent hub; git repo
@@ -95,7 +97,7 @@ regenerated on each run with git keeping the history.
 
 Clone repos **without running `composer install`**. No `vendor/` means nothing
 to exclude. If a repo commits `vendor/` anyway (common in at least one legacy
-PHP repo out of fifteen), the analysis will flag it.
+legacy PHP repo), the analysis will flag it.
 
 Keep analyzed repos. They make re-extraction cheap and let synthesis drop back
 to source for questions the schema did not anticipate. Moving them into
@@ -103,7 +105,7 @@ to source for questions the schema did not anticipate. Moving them into
 
 ### Recommended VS Code settings
 
-`parent/.vscode/settings.json` — with 15 nested git repos, source control
+`parent/.vscode/settings.json` — with many nested git repos, source control
 detection gets noisy:
 
 ```json
@@ -192,7 +194,11 @@ validation, schema, findings.
 ```
 
 Ingestion, extraction, gates, interpretation, glossary, commit. One session.
-Refuses to overwrite existing findings without explicit confirmation.
+
+If `findings/<repo>/` already exists, the command stops, reports what is there,
+and asks before replacing it — answer in chat, or pass `--force` to skip the
+prompt. With repos cycling through the same parent directory, an accidental
+re-run on a half-analyzed repo is the easy mistake.
 
 ### Phase 3 — Synthesis, repeated
 
@@ -208,8 +214,15 @@ mixed-parser-version corpus.
 
 ```
 /pdflib-status
-/pdflib-reextract billing-api
+/pdflib-reextract pcw-ppe-signs-promo
 ```
+
+**Run `/pdflib-status` at the start of every session.** It is read-only and
+takes seconds, and it is the only thing that surfaces the two silent failure
+modes: findings produced by a parser version that no longer exists, and repos
+whose HEAD has moved away from the commit their findings describe. Both are
+invisible until synthesis refuses to run — or worse, until a conclusion turns
+out to rest on mixed data.
 
 ---
 
@@ -235,7 +248,7 @@ than the parser) are a warning, and are the more important signal — that is th
 failure mode that survives the whole exercise.
 
 **Findings stand alone.** Synthesis runs over `findings/`, not over source,
-because fifteen repos of PHP will not fit in context. Call sites carry
+because the repos' PHP will not fit in context. Call sites carry
 surrounding code; wrapper boundaries are described in prose.
 
 **`parser_version` is a hash of the parser's own source.** A hand-maintained
@@ -288,7 +301,7 @@ encode guesses about a codebase nobody has looked at yet, and you would write
 it twice.
 
 The specification it must satisfy is in
-`skills/pdflib-analysis/references/parser-spec.md`.
+`.claude/skills/pdflib-analysis/references/parser-spec.md`.
 
 Bootstrap is also the step most worth your attention, for a specific reason: an
 agent asked to make two extractions agree can satisfy that by weakening either
@@ -319,11 +332,14 @@ for it.
 
 `resolve-runtime.sh` tries, in order:
 
-0. `PDFLIB_RUNTIME_IMAGE`, if you set it
+0. `PDFLIB_RUNTIME_IMAGE`, if you set it — a Docker image reference (`repo:tag`
+   or an image ID) that Docker can resolve locally or pull, e.g.
+   `PDFLIB_RUNTIME_IMAGE=pcw-ppe-signs-pdfgen-app:latest`. Set it when you
+   already know which image has PDFlib and want to skip discovery.
 1. any local image already carrying pdflib on the CLI SAPI (you probably have
    these built already)
 2. `docker build --target cli-pdflib` from the base repo
-3. compose or a direct build from a donor repo, if one is passed
+3. compose or a direct build from a runtime donor, if one is passed
 
 It verifies the extension actually loads before accepting a runtime, and records
 the choice in `analysis/reference/runtime.txt`.
@@ -335,7 +351,7 @@ application images built, and any of them carries the same PDFlib build. The
 only hard requirement is one obtainable image with the extension loaded for the
 CLI SAPI.
 
-**Why CLI-flavoured images are tried first.** Fourteen of the fifteen apps run
+**Why CLI-flavoured images are tried first.** All but one of the apps run
 Apache variants, which may enable the extension for FPM but not CLI — so a probe
 against one can report the extension as missing when it is installed and working.
 If you do need a donor, use `pcw-ppe-signs-pdfgen`: it is the only app on
@@ -349,6 +365,10 @@ the image is known, and whether php-parser is installed.
 ---
 
 ## Files
+
+Paths below are relative to this package. Once installed, everything sits under
+`.claude/` in the parent directory — so `skills/pdflib-analysis/SKILL.md` here is
+`.claude/skills/pdflib-analysis/SKILL.md` on disk.
 
 ```
 skills/pdflib-analysis/
